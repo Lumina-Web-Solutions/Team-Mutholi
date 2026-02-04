@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Mutholi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <section id="login-view" class="view active">
+        <div class="login-card">
+            <div class="logo-area">
+                <img src="./assets/logo.png" alt="Team Mutholi Logo" onerror="this.src='https://via.placeholder.com/100?text=TM'">
+                <h2>Team Mutholi</h2>
+                <p>Friends Only</p>
+            </div>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+            <p class="switch-auth">New member? <a href="#" id="show-register">Register here</a></p>
+        </div>
+        
+        <div class="login-card hidden" id="register-card">
+            <h3>Join the Team</h3>
+            <form id="register-form">
+                <input type="text" id="reg-name" placeholder="Full Name" required>
+                <input type="email" id="reg-email" placeholder="Email" required>
+                <input type="password" id="reg-password" placeholder="Password (Min 6 chars)" required>
+                <button type="submit" class="btn-secondary">Sign Up</button>
+            </form>
+            <p class="switch-auth">Have an account? <a href="#" id="show-login">Login here</a></p>
+        </div>
+    </section>
+
+    <section id="onboarding-view" class="view">
+        <div class="onboarding-card">
+            <h2>Welcome to the Family!</h2>
+            <p>To verify you are a real Mutholi member, please complete your profile.</p>
+            
+            <form id="onboarding-form">
+                <label>Date of Birth</label>
+                <input type="date" id="ob-dob" required>
+                
+                <label>Phone Number</label>
+                <input type="tel" id="ob-phone" placeholder="+91 9999999999" required>
+                
+                <label>Upload ID Card (Verification)</label>
+                <input type="file" id="ob-idcard" accept="image/*" required>
+                <small>Required for DOB verification.</small>
+
+                <button type="submit" class="btn-primary" id="ob-submit-btn">Submit for Verification</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="dashboard-view" class="view">
+        <div id="birthday-banner" class="birthday-banner hidden">
+            <i class="fa-solid fa-cake-candles"></i>
+            <h2 id="bday-msg">Happy Birthday!</h2>
+            <div class="confetti"></div>
+        </div>
+
+        <nav class="navbar">
+            <div class="nav-brand">Team Mutholi</div>
+            <button id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </nav>
+
+        <div class="container">
+            <div id="verification-status" class="alert warning">
+                Your ID is under review by Admin. Full access is restricted.
+            </div>
+
+            <div class="section-header">
+                <h3><i class="fa-solid fa-bullhorn"></i> Announcements</h3>
+                <button id="new-announcement-btn" class="btn-sm hidden">+ New</button>
+            </div>
+            <div id="announcements-feed" class="feed">
+                <p class="loading-text">Loading updates...</p>
+            </div>
+
+            <div class="section-header">
+                <h3><i class="fa-solid fa-toolbox"></i> Tools</h3>
+            </div>
+            <div class="grid-menu">
+                <div class="card-tool">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Members</span>
+                </div>
+                <div class="card-tool">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Events</span>
+                </div>
+                <div class="card-tool">
+                    <i class="fa-solid fa-image"></i>
+                    <span>Gallery</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="admin-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Post Announcement</h3>
+            <textarea id="announcement-text" placeholder="What's happening in Team Mutholi?"></textarea>
+            <button id="post-announcement-btn" class="btn-primary">Post</button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
