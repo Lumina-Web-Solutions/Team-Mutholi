@@ -14,7 +14,7 @@
     <section id="login-view" class="view active">
         <div class="login-card">
             <div class="logo-area">
-                <img src="./assets/logo.png" alt="Team Mutholi Logo" onerror="this.src='https://via.placeholder.com/100?text=TM'">
+                <img src="./assets/logo.png" alt="Team Mutholi" onerror="this.src='https://via.placeholder.com/100?text=TM'">
                 <h2>Team Mutholi</h2>
                 <p>Friends Only</p>
             </div>
@@ -82,19 +82,49 @@
                 <h3><i class="fa-solid fa-toolbox"></i> Tools</h3>
             </div>
             <div class="grid-menu">
-                <div class="card-tool">
+                <div class="card-tool" id="btn-members">
                     <i class="fa-solid fa-users"></i>
                     <span>Members</span>
                 </div>
-                <div class="card-tool">
+                <div class="card-tool" id="btn-events">
                     <i class="fa-solid fa-calendar-check"></i>
                     <span>Events</span>
                 </div>
-                <div class="card-tool">
+                <div class="card-tool" id="btn-gallery">
                     <i class="fa-solid fa-image"></i>
                     <span>Gallery</span>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section id="members-view" class="view">
+        <nav class="navbar">
+            <button class="back-btn" id="back-members"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <div class="nav-brand">Members</div>
+        </nav>
+        <div class="container" id="members-list">
+            <p class="loading-text">Loading...</p>
+        </div>
+    </section>
+
+    <section id="events-view" class="view">
+        <nav class="navbar">
+            <button class="back-btn" id="back-events"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <div class="nav-brand">Events</div>
+        </nav>
+        <div class="container">
+            <div class="alert" style="background:#333; color:#fff;">No upcoming events scheduled.</div>
+        </div>
+    </section>
+
+    <section id="gallery-view" class="view">
+        <nav class="navbar">
+            <button class="back-btn" id="back-gallery"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <div class="nav-brand">Gallery</div>
+        </nav>
+        <div class="container">
+            <p style="text-align: center;">Gallery is empty.</p>
         </div>
     </section>
 
