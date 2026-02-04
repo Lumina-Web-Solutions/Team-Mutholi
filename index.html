@@ -108,15 +108,31 @@
         </div>
     </section>
 
-    <section id="events-view" class="view">
+        <section id="events-view" class="view">
         <nav class="navbar">
             <button class="back-btn" id="back-events"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <div class="nav-brand">Events</div>
+            <button id="add-event-btn" class="btn-sm hidden" style="margin-left: auto;">+ Add</button>
         </nav>
-        <div class="container">
-            <div class="alert" style="background:#333; color:#fff;">No upcoming events scheduled.</div>
+        <div class="container" id="events-list">
+            <p class="loading-text" style="text-align: center;">Checking schedule...</p>
         </div>
     </section>
+
+    <div id="event-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-event-modal close-modal">&times;</span>
+            <h3>Plan New Event</h3>
+            <form id="create-event-form">
+                <input type="text" id="evt-title" placeholder="Event Name (e.g. Turf Football)" required>
+                <input type="date" id="evt-date" required>
+                <input type="time" id="evt-time" required>
+                <input type="text" id="evt-location" placeholder="Location" required>
+                <button type="submit" class="btn-primary">Schedule Event</button>
+            </form>
+        </div>
+    </div>
+
 
     <section id="gallery-view" class="view">
         <nav class="navbar">
