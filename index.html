@@ -18,6 +18,7 @@
                 <h2>Team Mutholi</h2>
                 <p>Friends Only</p>
             </div>
+            
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Email" required>
                 <input type="password" id="login-password" placeholder="Password" required>
@@ -29,7 +30,6 @@
         <div class="login-card hidden" id="register-card">
             <h3>Join the Team</h3>
             <form id="register-form">
-                <input type="text" id="reg-name" placeholder="Full Name" required>
                 <input type="email" id="reg-email" placeholder="Email" required>
                 <input type="password" id="reg-password" placeholder="Password (Min 6 chars)" required>
                 <button type="submit" class="btn-secondary">Sign Up</button>
@@ -41,7 +41,7 @@
     <section id="onboarding-view" class="view">
         <div class="onboarding-card">
             <h2>Welcome to the Family!</h2>
-            <p>To verify you are a real Mutholi member, please complete your profile.</p>
+            <p>Please add your details to continue.</p>
             
             <form id="onboarding-form">
                 <label>Date of Birth</label>
@@ -50,11 +50,7 @@
                 <label>Phone Number</label>
                 <input type="tel" id="ob-phone" placeholder="+91 9999999999" required>
                 
-                <label>Upload ID Card (Verification)</label>
-                <input type="file" id="ob-idcard" accept="image/*" required>
-                <small>Required for DOB verification.</small>
-
-                <button type="submit" class="btn-primary" id="ob-submit-btn">Submit for Verification</button>
+                <button type="submit" class="btn-primary" id="ob-submit-btn">Save & Enter</button>
             </form>
         </div>
     </section>
@@ -72,16 +68,14 @@
         </nav>
 
         <div class="container">
-            <div id="verification-status" class="alert warning">
-                Your ID is under review by Admin. Full access is restricted.
-            </div>
-
+            
             <div class="section-header">
                 <h3><i class="fa-solid fa-bullhorn"></i> Announcements</h3>
                 <button id="new-announcement-btn" class="btn-sm hidden">+ New</button>
             </div>
+            
             <div id="announcements-feed" class="feed">
-                <p class="loading-text">Loading updates...</p>
+                <p class="loading-text" style="text-align:center; color:#666;">Loading updates...</p>
             </div>
 
             <div class="section-header">
