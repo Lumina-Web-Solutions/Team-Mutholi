@@ -1,9 +1,8 @@
-// Import Firebase SDKs (Added getDocs for Members List)
+// Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// --- YOUR CONFIGURATION ---
 const firebaseConfig = {
   apiKey: "AIzaSyDrCDjT300X6DqVy39doeIEI4bd3x_t5b0",
   authDomain: "team-mutholi.firebaseapp.com",
@@ -13,311 +12,269 @@ const firebaseConfig = {
   measurementId: "G-98DV8W2MXX"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const adminEmail = "alfinphilip75@gmail.com";
 
-// DOM Elements & Views
+// --- VIEW MANAGEMENT ---
 const views = {
     login: document.getElementById('login-view'),
     onboarding: document.getElementById('onboarding-view'),
-    dashboard: document.getElementById('dashboard-view'),
-    members: document.getElementById('members-view'),
-    events: document.getElementById('events-view'),
-    gallery: document.getElementById('gallery-view')
+    dashboard: document.getElementById('dashboard-view')
 };
 
-const adminEmail = "alfinphilip75@gmail.com";
+function showView(viewId) {
+    Object.values(views).forEach(el => el.classList.remove('active'));
+    views[viewId].classList.add('active');
+}
 
 // --- AUTHENTICATION ---
-
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // User logged in. Check if profile exists.
+        // Check Profile
         const docRef = doc(db, "users", user.uid);
         try {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
+                initDashboard(user, docSnap.data());
                 showView('dashboard');
-                loadDashboard(user, docSnap.data());
             } else {
                 showView('onboarding');
             }
-        } catch (e) {
-            console.error("Error fetching profile:", e);
-        }
+        } catch (e) { console.error(e); }
     } else {
         showView('login');
     }
 });
 
-// Login
+// Login & Register Logic
+document.getElementById('show-register').onclick = () => { document.getElementById('register-card').classList.remove('hidden'); document.querySelector('.login-card').classList.add('hidden'); };
+document.getElementById('show-login').onclick = () => { document.getElementById('register-card').classList.add('hidden'); document.querySelector('.login-card').classList.remove('hidden'); };
+
 document.getElementById('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const pass = document.getElementById('login-password').value;
-    signInWithEmailAndPassword(auth, email, pass).catch(err => alert("Login Failed: " + err.message));
+    signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value)
+        .catch(err => alert(err.message));
 });
 
-// Register
 document.getElementById('register-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    const email = document.getElementById('reg-email').value;
-    const pass = document.getElementById('reg-password').value;
-    createUserWithEmailAndPassword(auth, email, pass)
-        .then(() => alert("Account created! Please add your details."))
-        .catch(err => alert("Registration Failed: " + err.message));
+    createUserWithEmailAndPassword(auth, document.getElementById('reg-email').value, document.getElementById('reg-password').value)
+        .catch(err => alert(err.message));
 });
 
-// Logout
-document.getElementById('logout-btn').addEventListener('click', () => {
-    signOut(auth).then(() => window.location.reload());
-});
+document.getElementById('logout-btn').onclick = () => signOut(auth).then(()=>location.reload());
 
-// --- ONBOARDING ---
+// --- ONBOARDING & IMAGE UPLOAD ---
+// Using ImgBB API for free image hosting (Simple, no backend config needed)
+const IMGBB_API_KEY = "6d207e02198a847aa98d0a2a901485a5"; // Replace with your own key if needed
+
+async function uploadImage(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    
+    let response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: "POST",
+        body: formData
+    });
+    
+    let data = await response.json();
+    return data.data.url;
+}
+
+// Preview Profile Image
+document.getElementById('ob-file').onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) document.getElementById('profile-preview').src = URL.createObjectURL(file);
+};
 
 document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('ob-submit-btn');
-    btn.textContent = "Saving...";
+    btn.textContent = "Uploading...";
     btn.disabled = true;
 
-    const user = auth.currentUser;
-    const dob = document.getElementById('ob-dob').value;
-    const phone = document.getElementById('ob-phone').value;
-
     try {
+        const user = auth.currentUser;
+        const file = document.getElementById('ob-file').files[0];
+        let photoUrl = `https://ui-avatars.com/api/?name=${document.getElementById('ob-name').value}`;
+
+        if (file) {
+            photoUrl = await uploadImage(file);
+        }
+
         await setDoc(doc(db, "users", user.uid), {
             email: user.email,
-            dob: dob,
-            phone: phone,
-            verified: true, 
+            name: document.getElementById('ob-name').value,
+            dob: document.getElementById('ob-dob').value,
+            phone: document.getElementById('ob-phone').value,
+            photo: photoUrl,
             isAdmin: user.email === adminEmail,
             joinedAt: serverTimestamp()
         });
-        location.reload(); 
-    } catch (error) {
-        alert("Error: " + error.message);
-        btn.textContent = "Save & Enter";
-        btn.disabled = false;
-    }
+        location.reload();
+    } catch (err) { alert("Error: " + err.message); btn.disabled = false; }
 });
 
-// --- DASHBOARD & TABS ---
+// --- DASHBOARD LOGIC ---
+let currentUserData = null;
 
-function loadDashboard(user, userData) {
-    // Check Birthday
-    checkBirthday(userData.dob);
-
-    // Admin Controls
-    if (userData.isAdmin) {
-        const btn = document.getElementById('new-announcement-btn');
-        if(btn) btn.classList.remove('hidden');
-    }
-
-    // Load Announcements (Realtime)
-    const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"));
-    onSnapshot(q, (snapshot) => {
-        const feed = document.getElementById('announcements-feed');
-        feed.innerHTML = "";
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString() : 'Just now';
-            feed.innerHTML += `
-                <div class="announcement-item">
-                    <p>${data.text}</p>
-                    <div class="meta">Posted on ${date}</div>
-                </div>`;
-        });
-        if(snapshot.empty) feed.innerHTML = "<p style='text-align:center; color:#888;'>No announcements yet.</p>";
-    });
-}
-
-// 1. Members Tab Logic
-document.getElementById('btn-members').addEventListener('click', async () => {
-    showView('members');
-    const list = document.getElementById('members-list');
-    list.innerHTML = '<p class="loading-text" style="text-align:center;">Loading Team...</p>';
-
-    try {
-        // Fetch all users
-        const q = query(collection(db, "users"));
-        const snapshot = await getDocs(q);
-
-        list.innerHTML = "";
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            // Card Design
-            const card = `
-                <div class="announcement-item" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <h4 style="margin:0; font-size:1rem;">${data.email.split('@')[0]}</h4>
-                        <small style="color:#aaa;">${data.phone || 'No phone'}</small>
-                    </div>
-                    <div style="font-size:0.8rem; color:#666;">
-                        ${data.dob || ''}
-                    </div>
-                </div>
-            `;
-            list.innerHTML += card;
-        });
-    } catch (e) {
-        list.innerHTML = `<p style="color:red; text-align:center;">Error: ${e.message}</p>`;
-    }
-});
-
-// 2. Events Tab Logic
-document.getElementById('btn-events').addEventListener('click', () => showView('events'));
-
-// 3. Gallery Tab Logic
-document.getElementById('btn-gallery').addEventListener('click', () => showView('gallery'));
-
-// 4. Back Button Logic
-document.querySelectorAll('.back-btn').forEach(btn => {
-    btn.addEventListener('click', () => showView('dashboard'));
-});
-
-// --- HELPER FUNCTIONS ---
-
-function checkBirthday(dobString) {
-    if(!dobString) return;
-    const today = new Date();
-    const dob = new Date(dobString);
-    if (today.getDate() === dob.getDate() && today.getMonth() === dob.getMonth()) {
-        const banner = document.getElementById('birthday-banner');
-        if(banner) {
-            banner.classList.remove('hidden');
-            document.getElementById('bday-msg').innerText = `Happy Birthday! 🎉`; 
-        }
-    }
-}
-
-// Admin Modal Logic
-const modal = document.getElementById('admin-modal');
-const newPostBtn = document.getElementById('new-announcement-btn');
-const closeBtn = document.querySelector('.close-modal');
-
-if(newPostBtn) newPostBtn.onclick = () => modal.classList.remove('hidden');
-if(closeBtn) closeBtn.onclick = () => modal.classList.add('hidden');
-
-document.getElementById('post-announcement-btn').onclick = async () => {
-    const text = document.getElementById('announcement-text').value;
-    if (!text) return;
-    await addDoc(collection(db, "announcements"), {
-        text: text,
-        timestamp: serverTimestamp(),
-        author: auth.currentUser.email
-    });
-    document.getElementById('announcement-text').value = "";
-    modal.classList.add('hidden');
-};
-
-function showView(viewId) {
-    // Hide all views
-    Object.values(views).forEach(el => { if(el) el.classList.remove('active'); });
-    // Show target view
-    if(views[viewId]) views[viewId].classList.add('active');
-    // --- EVENTS FEATURE LOGIC ---
-
-// 1. Open/Close Event Modal
-const eventModal = document.getElementById('event-modal');
-const addEventBtn = document.getElementById('add-event-btn');
-const closeEventBtn = document.querySelector('.close-event-modal');
-
-if(addEventBtn) addEventBtn.onclick = () => eventModal.classList.remove('hidden');
-if(closeEventBtn) closeEventBtn.onclick = () => eventModal.classList.add('hidden');
-
-// 2. Submit New Event (Admin Only)
-document.getElementById('create-event-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('evt-title').value;
-    const date = document.getElementById('evt-date').value;
-    const time = document.getElementById('evt-time').value;
-    const location = document.getElementById('evt-location').value;
-
-    try {
-        // Create a sortable date string
-        const fullDate = new Date(`${date}T${time}`);
-
-        await addDoc(collection(db, "events"), {
-            title: title,
-            date: date,
-            time: time,
-            location: location,
-            fullDate: fullDate, // Used for sorting
-            createdBy: auth.currentUser.email
-        });
-        
-        alert("Event Scheduled!");
-        eventModal.classList.add('hidden');
-        document.getElementById('create-event-form').reset();
-    } catch (error) {
-        alert("Error: " + error.message);
-    }
-});
-
-// 3. Load Events (Real-time)
-// We modify the existing event button listener
-document.getElementById('btn-events').addEventListener('click', () => {
-    showView('events');
-    const list = document.getElementById('events-list');
+function initDashboard(user, data) {
+    currentUserData = data;
+    document.getElementById('dash-username').textContent = data.name;
+    document.getElementById('dash-avatar').src = data.photo;
     
-    // Check if user is admin to show the "+ Add" button
-    const user = auth.currentUser;
-    if (user && user.email === adminEmail) {
+    // Check Birthday
+    const today = new Date();
+    const dob = new Date(data.dob);
+    if(today.getDate() === dob.getDate() && today.getMonth() === dob.getMonth()) {
+        document.getElementById('birthday-banner').classList.remove('hidden');
+    }
+
+    // Admin Buttons
+    if(data.isAdmin) {
+        document.getElementById('add-anno-btn').classList.remove('hidden');
         document.getElementById('add-event-btn').classList.remove('hidden');
     }
 
-    // Fetch Events sorted by Date
-    const q = query(collection(db, "events"), orderBy("fullDate", "asc"));
+    loadFeed();
+}
+
+// --- TABS SWITCHING ---
+window.switchTab = (tabName) => {
+    // Buttons
+    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
     
-    onSnapshot(q, (snapshot) => {
+    // Content
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+
+    // Load Data
+    if(tabName === 'members') loadMembers();
+    if(tabName === 'gallery') loadGallery();
+    if(tabName === 'events') loadEvents();
+};
+
+// --- FEATURES ---
+
+// 1. FEED
+function loadFeed() {
+    const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"));
+    onSnapshot(q, (snap) => {
+        const list = document.getElementById('feed-list');
         list.innerHTML = "";
-        
-        if(snapshot.empty) {
-            list.innerHTML = `<div class="alert" style="background:#333; color:#fff;">No upcoming events.</div>`;
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            
-            // Format Date slightly nicer
-            const dateObj = new Date(data.date);
-            const day = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-
-            const html = `
-                <div class="card-tool" style="text-align:left; display:flex; gap:15px; margin-bottom:10px; cursor:default;">
-                    <div style="background:#333; padding:10px; border-radius:8px; text-align:center; min-width:50px;">
-                        <div style="font-weight:bold; font-size:1.2rem; color:var(--primary);">${day.split(' ')[1]}</div>
-                        <div style="font-size:0.8rem;">${day.split(' ')[0]}</div>
-                    </div>
-                    <div>
-                        <h4 style="margin:0 0 5px 0;">${data.title}</h4>
-                        <div style="font-size:0.8rem; color:#aaa;">
-                            <i class="fa-regular fa-clock"></i> ${data.time} <br>
-                            <i class="fa-solid fa-location-dot"></i> ${data.location}
-                        </div>
-                    </div>
-                </div>
-            `;
-            list.innerHTML += html;
+        snap.forEach(doc => {
+            const d = doc.data();
+            list.innerHTML += `
+            <div class="card-post">
+                <p>${d.text}</p>
+                <div class="card-meta">${d.dateString}</div>
+            </div>`;
         });
     });
-});
-          
-    // Auth View Logic
-    if(viewId === 'login') {
-        const registerCard = document.getElementById('register-card');
-        const loginCard = document.querySelector('.login-card:not(#register-card)');
-        document.getElementById('show-register').onclick = () => {
-            loginCard.classList.add('hidden');
-            registerCard.classList.remove('hidden');
-        };
-        document.getElementById('show-login').onclick = () => {
-            registerCard.classList.add('hidden');
-            loginCard.classList.remove('hidden');
-        };
-    }
 }
+
+// 2. MEMBERS
+async function loadMembers() {
+    const list = document.getElementById('members-grid');
+    if(list.innerHTML.trim() !== "") return; // Don't reload if present
+
+    const snap = await getDocs(query(collection(db, "users")));
+    list.innerHTML = "";
+    snap.forEach(doc => {
+        const d = doc.data();
+        list.innerHTML += `
+        <div class="member-card">
+            <img src="${d.photo}" alt="${d.name}">
+            <h4>${d.name}</h4>
+            <p>${d.phone}</p>
+        </div>`;
+    });
+}
+
+// 3. GALLERY
+function loadGallery() {
+    const q = query(collection(db, "gallery"), orderBy("timestamp", "desc"));
+    onSnapshot(q, (snap) => {
+        const list = document.getElementById('gallery-grid');
+        list.innerHTML = "";
+        snap.forEach(doc => {
+            const d = doc.data();
+            list.innerHTML += `
+            <div class="gallery-item">
+                <img src="${d.url}" onclick="window.open(this.src)">
+                ${d.caption ? `<div class="gallery-caption">${d.caption}</div>` : ''}
+            </div>`;
+        });
+    });
+}
+
+// 4. EVENTS
+function loadEvents() {
+    const q = query(collection(db, "events"), orderBy("fullDate", "asc"));
+    onSnapshot(q, (snap) => {
+        const list = document.getElementById('events-list');
+        list.innerHTML = "";
+        snap.forEach(doc => {
+            const d = doc.data();
+            list.innerHTML += `
+            <div class="card-post" style="border-left-color: #667eea;">
+                <h4>${d.title}</h4>
+                <div class="card-meta"><i class="fa-regular fa-clock"></i> ${d.date} @ ${d.time}</div>
+                <div class="card-meta"><i class="fa-solid fa-location-dot"></i> ${d.location}</div>
+            </div>`;
+        });
+    });
+}
+
+// --- MODALS & ACTIONS ---
+
+// Helpers
+const toggleModal = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
+document.querySelectorAll('.close-modal').forEach(b => b.onclick = (e) => toggleModal(e.target.closest('.modal').id, false));
+
+// Post
+document.getElementById('add-anno-btn').onclick = () => toggleModal('post-modal', true);
+document.getElementById('submit-post').onclick = async () => {
+    const text = document.getElementById('post-text').value;
+    if(!text) return;
+    await addDoc(collection(db, "announcements"), {
+        text, timestamp: serverTimestamp(), dateString: new Date().toLocaleDateString()
+    });
+    toggleModal('post-modal', false); document.getElementById('post-text').value = "";
+};
+
+// Event
+document.getElementById('add-event-btn').onclick = () => toggleModal('event-modal', true);
+document.getElementById('submit-event').onclick = async () => {
+    const title = document.getElementById('evt-title').value;
+    const date = document.getElementById('evt-date').value;
+    const time = document.getElementById('evt-time').value;
+    const loc = document.getElementById('evt-loc').value;
+    await addDoc(collection(db, "events"), {
+        title, date, time, location: loc, fullDate: new Date(`${date}T${time}`), createdBy: auth.currentUser.email
+    });
+    toggleModal('event-modal', false);
+};
+
+// Gallery Upload
+document.getElementById('upload-photo-btn').onclick = () => toggleModal('photo-modal', true);
+document.getElementById('submit-photo').onclick = async () => {
+    const file = document.getElementById('gallery-file').files[0];
+    const cap = document.getElementById('gallery-caption').value;
+    const btn = document.getElementById('submit-photo');
+    
+    if(!file) return;
+    btn.innerText = "Uploading...";
+    
+    try {
+        const url = await uploadImage(file);
+        await addDoc(collection(db, "gallery"), {
+            url, caption: cap, timestamp: serverTimestamp(), user: auth.currentUser.email
+        });
+        toggleModal('photo-modal', false);
+    } catch(e) { alert(e); }
+    btn.innerText = "Upload";
+};
