@@ -218,7 +218,95 @@ function showView(viewId) {
     Object.values(views).forEach(el => { if(el) el.classList.remove('active'); });
     // Show target view
     if(views[viewId]) views[viewId].classList.add('active');
+    // --- EVENTS FEATURE LOGIC ---
+
+// 1. Open/Close Event Modal
+const eventModal = document.getElementById('event-modal');
+const addEventBtn = document.getElementById('add-event-btn');
+const closeEventBtn = document.querySelector('.close-event-modal');
+
+if(addEventBtn) addEventBtn.onclick = () => eventModal.classList.remove('hidden');
+if(closeEventBtn) closeEventBtn.onclick = () => eventModal.classList.add('hidden');
+
+// 2. Submit New Event (Admin Only)
+document.getElementById('create-event-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('evt-title').value;
+    const date = document.getElementById('evt-date').value;
+    const time = document.getElementById('evt-time').value;
+    const location = document.getElementById('evt-location').value;
+
+    try {
+        // Create a sortable date string
+        const fullDate = new Date(`${date}T${time}`);
+
+        await addDoc(collection(db, "events"), {
+            title: title,
+            date: date,
+            time: time,
+            location: location,
+            fullDate: fullDate, // Used for sorting
+            createdBy: auth.currentUser.email
+        });
+        
+        alert("Event Scheduled!");
+        eventModal.classList.add('hidden');
+        document.getElementById('create-event-form').reset();
+    } catch (error) {
+        alert("Error: " + error.message);
+    }
+});
+
+// 3. Load Events (Real-time)
+// We modify the existing event button listener
+document.getElementById('btn-events').addEventListener('click', () => {
+    showView('events');
+    const list = document.getElementById('events-list');
     
+    // Check if user is admin to show the "+ Add" button
+    const user = auth.currentUser;
+    if (user && user.email === adminEmail) {
+        document.getElementById('add-event-btn').classList.remove('hidden');
+    }
+
+    // Fetch Events sorted by Date
+    const q = query(collection(db, "events"), orderBy("fullDate", "asc"));
+    
+    onSnapshot(q, (snapshot) => {
+        list.innerHTML = "";
+        
+        if(snapshot.empty) {
+            list.innerHTML = `<div class="alert" style="background:#333; color:#fff;">No upcoming events.</div>`;
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            
+            // Format Date slightly nicer
+            const dateObj = new Date(data.date);
+            const day = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+
+            const html = `
+                <div class="card-tool" style="text-align:left; display:flex; gap:15px; margin-bottom:10px; cursor:default;">
+                    <div style="background:#333; padding:10px; border-radius:8px; text-align:center; min-width:50px;">
+                        <div style="font-weight:bold; font-size:1.2rem; color:var(--primary);">${day.split(' ')[1]}</div>
+                        <div style="font-size:0.8rem;">${day.split(' ')[0]}</div>
+                    </div>
+                    <div>
+                        <h4 style="margin:0 0 5px 0;">${data.title}</h4>
+                        <div style="font-size:0.8rem; color:#aaa;">
+                            <i class="fa-regular fa-clock"></i> ${data.time} <br>
+                            <i class="fa-solid fa-location-dot"></i> ${data.location}
+                        </div>
+                    </div>
+                </div>
+            `;
+            list.innerHTML += html;
+        });
+    });
+});
+          
     // Auth View Logic
     if(viewId === 'login') {
         const registerCard = document.getElementById('register-card');
